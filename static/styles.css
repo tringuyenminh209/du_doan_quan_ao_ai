@@ -1,0 +1,44 @@
+/* Tự động theme sáng tối */
+body {
+    transition: background 0.5s, color 0.5s;
+}
+
+body.dark {
+    background: linear-gradient(to right, #1c1f26, #2c303a);
+    color: #f8f9fa;
+}
+
+.container {
+    transition: background 0.5s;
+}
+
+body.dark .container {
+    background: #2e3440;
+}
+
+button.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 999;
+    transition: background 0.3s;
+}
+
+button.theme-toggle:hover {
+    background: #495057;
+}
+
+.preview-img {
+    transition: transform 0.3s ease;
+}
+
+.preview-img:hover {
+    transform: scale(1.03);
+}
