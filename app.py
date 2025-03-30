@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
@@ -54,13 +54,15 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def process_image(img_path):
     """Xử lý ảnh và dự đoán nhãn."""
     try:
+        logging.info(f"📷 Đang xử lý ảnh: {img_path}")
         img = image.load_img(img_path, target_size=(28, 28), color_mode='grayscale')
         img_array = image.img_to_array(img) / 255.0
+        logging.info(f"✅ Kích thước ảnh sau convert: {img_array.shape}")
         img_array = img_array.reshape(1, 28, 28, 1)
         pred = model.predict(img_array)
         return LABELS_VI[np.argmax(pred)]
     except Exception as e:
-        logging.error(f"Lỗi khi xử lý ảnh: {e}")
+        logging.error(f"❌ Lỗi khi xử lý ảnh: {e}")
         return "Lỗi xử lý ảnh"
 
 @app.route('/', methods=['GET', 'POST'])
@@ -75,9 +77,15 @@ def index():
             filename = secure_filename(file.filename)
             img_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(img_path)
+            logging.info(f"File được tải lên: {filename}")
+            logging.info(f"Đường dẫn file: {img_path}")
 
             if model:
-                label = process_image(img_path)
+                try:
+                    label = process_image(img_path)
+                except Exception as e:
+                    logging.error(f"Lỗi khi dự đoán: {e}")
+                    label = "Lỗi khi dự đoán. Vui lòng thử lại."
             else:
                 label = "Mô hình không khả dụng."
         else:
@@ -85,6 +93,44 @@ def index():
 
     return render_template("index.html", label=label, img_path=img_path,
                            lang=lang, translations=translations)
+
+@app.route('/api/predict', methods=['POST'])
+def api_predict():
+    if model is None:
+        return jsonify({"error": "Mô hình không khả dụng"}), 500
+
+    file = request.files.get('file')
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
+
+    try:
+        filename = secure_filename(file.filename)
+        img_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(img_path)
+
+        # Tiền xử lý
+        img = image.load_img(img_path, target_size=(28, 28), color_mode='grayscale')
+        img_array = image.img_to_array(img) / 255.0
+        img_array = img_array.reshape(1, 28, 28, 1)
+
+        # Dự đoán
+        prediction = model.predict(img_array)[0]
+        predicted_index = int(np.argmax(prediction))
+        confidence = float(np.max(prediction))
+        label = LABELS_VI[predicted_index]
+
+        return jsonify({
+            "label": label,
+            "confidence": confidence,
+            "index": predicted_index
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/test')
+def test_page():
+    return render_template('test.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

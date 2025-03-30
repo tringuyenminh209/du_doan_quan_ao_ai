@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Test API Dự Đoán</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+            text-align: center;
+        }
+        .preview {
+            margin: 20px auto;
+            width: 200px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        #loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>🧠 Test API Dự đoán AI</h2>
+    <label for="fileInput">First name:</label>
+    <input type="file" id="fileInput"><br><br>
+    <button onclick="predict()">Dự đoán</button>
+    <div id="loading">Đang xử lý...</div>
+    <div class="preview">
+        <img id="previewImg" width="200" alt="Preview sẽ hiển thị ở đây">
+    </div>
+    <div id="result"></div>
+    <script>
+        async function predict() {
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Vui lòng chọn ảnh!");
+                return;
+            }
+            if (!file.type.startsWith("image/")) {
+                alert("Vui lòng chọn một file ảnh hợp lệ!");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", file);
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById("previewImg").src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            document.getElementById("result").innerHTML = "";
+            document.getElementById("loading").style.display = "block";
+            try {
+                const response = await fetch("/api/predict", {
+                    method: "POST",
+                    body: formData
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                document.getElementById("loading").style.display = "none";
+                if (data.label) {
+                    document.getElementById("result").innerHTML = `
+                        <h3>Kết quả: ${data.label}</h3>
+                        <p>Độ chính xác: ${(data.confidence * 100).toFixed(2)}%</p>
+                    `;
+                } else if (data.error) {
+                    document.getElementById("result").innerText = "Lỗi: " + data.error;
+                } else{
+                    document.getElementById("result").innerText = "Lỗi: Dữ liệu trả về không hợp lệ";
+                }
+            } catch (error) {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("result").innerText = "Không thể kết nối đến API: " + error.message;
+                console.error("Lỗi khi gọi API:", error);
+            }
+        }
+    </script>
+</body>
+</html>

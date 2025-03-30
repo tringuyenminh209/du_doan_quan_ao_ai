@@ -27,6 +27,10 @@ model.compile(optimizer='adam',
 # Bước 5: Huấn luyện mô hình (chạy vài epoch là đủ để demo)
 model.fit(x_train, y_train, epochs=5, validation_split=0.1, verbose=2)
 
-# Bước 6: Lưu mô hình
+# Bước 6: Đánh giá mô hình
+loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
+print(f"Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
+
+# Bước 7: Lưu mô hình
 model.save("model.h5")
 print("✅ Mô hình đã được lưu thành công dưới tên model.h5")
